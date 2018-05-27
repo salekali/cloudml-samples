@@ -166,7 +166,6 @@ def build_estimator(config, embedding_size=8, hidden_units=None):
 
   return tf.estimator.DNNClassifier(feature_columns=INPUT_COLUMNS,
 		                    hidden_units=[108, 10, 2],
-				                n_classes=2,
 		                    optimizer=tf.train.GradientDescentOptimizer(
 		                         learning_rate=0.05
 		                    ),
