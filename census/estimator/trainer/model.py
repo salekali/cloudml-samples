@@ -164,13 +164,15 @@ def build_estimator(config, embedding_size=8, hidden_units=None):
       hours_per_week,
   ]
 
-  return tf.estimator.DNNLinearCombinedClassifier(
-      config=config,
-      linear_feature_columns=wide_columns,
-      dnn_feature_columns=deep_columns,
-      dnn_hidden_units=hidden_units or [100, 70, 50, 25]
-  )
-
+  return tf.estimator.DNNClassifier(feature_columns=INPUT_COLUMNS,
+		                    hidden_units=[108, 10, 2],
+				                n_classes=2,
+		                    optimizer=tf.train.GradientDescentOptimizer(
+		                         learning_rate=0.05
+		                    ),
+		                    activation_fn=tf.nn.sigmoid,
+		                    config=config
+	)
 
 def parse_label_column(label_string_tensor):
   """Parses a string tensor into the label tensor
