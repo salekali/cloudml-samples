@@ -88,22 +88,18 @@ UNUSED_COLUMNS = set(CSV_COLUMNS) - {col.name for col in INPUT_COLUMNS} - \
 
 def build_estimator(config, embedding_size=8, hidden_units=None):
   """Build a wide and deep model for predicting income category.
-
   Wide and deep models use deep neural nets to learn high level abstractions
   about complex features or interactions between such features.
   These models then combined the outputs from the DNN with a linear regression
   performed on simpler features. This provides a balance between power and
   speed that is effective on many structured data problems.
-
   You can read more about wide and deep models here:
   https://research.googleblog.com/2016/06/wide-deep-learning-better-together-with.html
-
   To define model we can use the prebuilt DNNCombinedLinearClassifier class,
   and need only define the data transformations particular to our dataset, and
   then
   assign these (potentially) transformed features to either the DNN, or linear
   regression portion of the model.
-
   Args:
     config: tf.contrib.learn.RunConfig defining the runtime environment for the
       estimator (including model_dir).
@@ -164,14 +160,16 @@ def build_estimator(config, embedding_size=8, hidden_units=None):
       hours_per_week,
   ]
 
-  return tf.estimator.DNNClassifier(feature_columns=INPUT_COLUMNS,
-		                    hidden_units=[108, 10, 2],
-		                    optimizer=tf.train.GradientDescentOptimizer(
-		                         learning_rate=0.05
-		                    ),
-		                    activation_fn=tf.nn.sigmoid,
-		                    config=config
-	)
+
+  return tf.estimator.LinearClassifier(feature_columns=deep_columns,
+                                       config=config,
+                                       optimizer=tf.train.FtrlOptimizer(
+                                         learning_rate=0.1,
+                                             # regularization to prevent over-fitting
+                                         l1_regularization_strength=1.0,
+                                         l2_regularization_strength=1.0
+                                        )
+                                    )
 
 def parse_label_column(label_string_tensor):
   """Parses a string tensor into the label tensor
@@ -227,7 +225,7 @@ def json_serving_input_fn():
   inputs = {}
   for feat in INPUT_COLUMNS:
     inputs[feat.name] = tf.placeholder(shape=[None], dtype=feat.dtype)
-    
+
   return tf.estimator.export.ServingInputReceiver(inputs, inputs)
 # [END serving-function]
 
@@ -263,7 +261,6 @@ def input_fn(filenames,
   """Generates features and labels for training or evaluation.
   This uses the input pipeline based approach using file name queue
   to read data so that entire data is not loaded in memory.
-
   Args:
       filenames: [str] list of CSV files to read data from.
       num_epochs: int how many times through to read the data.
@@ -283,12 +280,12 @@ def input_fn(filenames,
   if shuffle:
     # Process the files in a random order.
     filename_dataset = filename_dataset.shuffle(len(filenames))
-    
+
   # For each filename, parse it into one element per line, and skip the header
   # if necessary.
   dataset = filename_dataset.flat_map(
       lambda filename: tf.data.TextLineDataset(filename).skip(skip_header_lines))
-  
+
   dataset = dataset.map(parse_csv)
   if shuffle:
     dataset = dataset.shuffle(buffer_size=batch_size * 10)
